@@ -1,11 +1,24 @@
-import './assets/main.css'
-
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import { initializeApp } from "firebase/app";
+import { getFirestore } from 'firebase/firestore'
 
-const app = createApp(App)
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyD5gmcsMbchCVny2MqaNKq_tOvMjzXGBlY",
+    authDomain: "am-series.firebaseapp.com",
+    projectId: "am-series",
+    storageBucket: "am-series.appspot.com",
+    messagingSenderId: "409527088294",
+    appId: "1:409527088294:web:a866033943645f473cf067"
+};
 
-app.use(router)
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-app.mount('#app')
+// Initialize Firestore
+export const db = getFirestore(app);
+
+
+createApp(App).use(router).mount('#app')
