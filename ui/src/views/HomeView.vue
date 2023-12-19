@@ -1,6 +1,7 @@
 <script setup>
 import EpisodeCard from "@/components/EpisodeCard.vue";
 import EpisodeCardSmall from "@/components/EpisodeCardSmall.vue";
+import SeriesCardSmall from "@/components/SeriesCardSmall.vue";
 import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
@@ -12,6 +13,7 @@ const serviceData = ref(null);
 const seriesData = ref(null);
 const seriesEpisodes = ref(null);
 const route = useRoute();
+const series = ref(null);
 
 
 const getServiceData = () => {
@@ -58,6 +60,22 @@ const getAllEpisodes = async () => {
 
 }
 
+const getAllSeries = async () => {
+  //get all series
+  const seriesQuery = query(
+    collection(db, 'series'),
+    orderBy('timestamp', 'desc') // Add this line
+  );
+  const seriesSnapshot = await getDocs(seriesQuery);
+
+  if (!seriesSnapshot.empty) {
+    series.value = seriesSnapshot.docs.map(doc => doc.data());
+    console.log("getAllSeries", series.value);
+  } else {
+    console.log('No series found!');
+  }
+}
+
 const loadData = async () => {
   //reset data
   episode.value = null;
@@ -81,6 +99,7 @@ const loadData = async () => {
       getServiceData();
       await getSeriesData();
       await getAllEpisodes();
+      await getAllSeries();
     } else {
       console.log('No such document!');
     }
@@ -98,6 +117,7 @@ const loadData = async () => {
   getServiceData();
   await getSeriesData();
   await getAllEpisodes();
+  await getAllSeries();
 }
 
 onMounted(loadData);
@@ -111,13 +131,14 @@ watch(route, loadData, { deep: true })
   <EpisodeCard v-if="serviceData" :episodeImage=seriesData.image :episodeTitle=episode.title :episodeDate="episode.date"
     episodeDescription="Episode Description" :serviceTypes=episode.serviceTypes :serviceData="serviceData" />
   <h1 class="text-centered">More from this series:</h1>
-  <div class="card-container">
+  <div v-if="serviceData" class="card-container">
     <EpisodeCardSmall v-for="(episode, index) in seriesEpisodes" :key="index" :episodeImage=seriesData.image
       :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" />
   </div>
   <h1 class="text-centered">Recent series:</h1>
-  <div class="card-container">
-
+  <div v-if="series" class="card-container">
+    <SeriesCardSmall v-for="(series, index) in series" :key="index" :seriesImage=series.image
+      :seriesTitle=series.title :seriesId="series.id" :seriesStartDate="series.startDate" :seriesEndDate="series.endDate" />
   </div>
 </template>
 
