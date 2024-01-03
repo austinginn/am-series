@@ -1,12 +1,12 @@
 <template>
-    <div v-if="!desktop" class="episode-card-small" @click="handleCardClick(episodeId)">
+    <div v-if="!desktop || small" class="episode-card-small" @click="handleCardClick(episodeId)">
         <img :src="episodeImage" alt="Episode image" class="episode-image" />
         <div class="episode-info">
             <h2 class="episode-title">{{ episodeTitle }}</h2>
             <p class="episode-date">{{ episodeDate }}</p>
         </div>
     </div>
-    <div v-if="desktop" class="episode-card-small-desktop" @click="handleCardClick(episodeId)">
+    <div v-else class="episode-card-small-desktop" @click="handleCardClick(episodeId)">
         <img :src="episodeImage" alt="Episode image" class="episode-image-desktop" />
         <div class="episode-info-desktop">
             <h2 class="episode-title-desktop">{{ episodeTitle }}</h2>
@@ -23,9 +23,10 @@ export default {
         episodeImage: String,
         episodeTitle: String,
         episodeDate: String,
-        episodeId: String
+        episodeId: String,
+        small: Boolean
     },
-    setup(props) {
+    setup(props, { emit }) {
         const { episodeImage, episodeTitle, episodeDate, episodeId } = toRefs(props);
         const router = useRouter(); // Initialize router
         const windowWidth = ref(window.innerWidth);
@@ -47,7 +48,7 @@ export default {
         const handleCardClick = (episodeId) => {
             console.log(episodeId);
             //navigate to home with episodeId
-            router.push({ name: 'home', query: { id: episodeId } });
+            emit('select-episode', episodeId)
 
         }
 

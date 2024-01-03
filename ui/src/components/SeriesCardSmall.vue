@@ -1,15 +1,23 @@
 <template>
-  <div v-if="!desktop" class="series-card">
+  <div v-if="!desktop" class="series-card" @click="onButtonClick(seriesId)">
     <img :src="seriesImage" alt="Series Image" class="series-image" />
     <div class="series-info">
       <h2 class="series-title">{{ seriesTitle }}</h2>
+      <!-- <p class="series-desc"> {{ truncatedDescription }} </p>
+      <button class="show-more-button" v-if="seriesDescription.length > 125" @click="showFullDescription = !showFullDescription">
+        {{ showFullDescription ? 'Show less' : 'Show more' }}
+      </button> -->
       <p class="series-date"> {{ seriesStartDate }} to {{ seriesEndDate }} </p>
     </div>
   </div>
-  <div v-if="desktop" class="series-card-small-desktop">
+  <div v-if="desktop" class="series-card-small-desktop" @click="onButtonClick(seriesId)">
     <img :src="seriesImage" alt="series image" class="series-image-desktop" />
     <div class="series-info-desktop">
       <h2 class="series-title-desktop">{{ seriesTitle }}</h2>
+      <p class="series-desc-desktop"> {{ truncatedDescription }} </p>
+      <button class="show-more-button" v-if="seriesDescription.length > 125" @click.stop="showFullDescription = !showFullDescription">
+        {{ showFullDescription ? 'Show less' : 'Show more' }}
+      </button>
       <p class="series-date-desktop">{{ seriesStartDate }} to {{ seriesEndDate }}</p>
     </div>
   </div>
@@ -27,13 +35,16 @@ export default {
     seriesEndDate: String,
     seriesId: String,
   },
-  setup(props) {
+  setup(props, { emit }) {
     const { seriesImage, seriesTitle, seriesDescription, seriesStartDate, seriesEndDate, seriesId } = toRefs(props);
     const windowWidth = ref(window.innerWidth);
     const desktop = computed(() => windowWidth.value >= 768);
+    const showFullDescription = ref(false);
 
-    const onButtonClick = () => {
+    const onButtonClick = (seriesId) => {
       console.log("button clicked");
+      console.log(seriesId);
+      emit('select-series', seriesId);
     }
 
     const handleResize = () => {
@@ -48,7 +59,24 @@ export default {
       window.removeEventListener('resize', handleResize);
     });
 
+    const truncatedDescription = computed(() => {
+      if (showFullDescription.value) {
+        return props.seriesDescription;
+      } else if (props.seriesDescription.length > 125) {
+        let truncated = props.seriesDescription.substring(0, 125);
+        let lastSpaceIndex = truncated.lastIndexOf(' ');
+        if (lastSpaceIndex !== -1) {
+          truncated = truncated.substring(0, lastSpaceIndex);
+        }
+        return truncated + '...';
+      } else {
+        return props.seriesDescription;
+      }
+    });
+
     return {
+      showFullDescription,
+      truncatedDescription,
       seriesImage,
       seriesTitle,
       seriesDescription,
@@ -101,6 +129,13 @@ export default {
   font-size: 14px;
 }
 
+.series-desc-desktop {
+  margin: 0;
+  font-size: 14px;
+  text-align: left;
+
+}
+
 .series-card:hover {
   background-color: rgb(190, 32, 46);
   color: white;
@@ -136,5 +171,20 @@ export default {
 .series-info-desktop {
   padding: 10px;
   text-align: center;
+}
+.show-more-button {
+  padding: 5px;
+  border: none;
+  background-color: #677687;
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 12px;
+  border-radius: 5px;
+  margin-top: 5px;
+}
+
+.show-more-button:hover {
+  background-color: #4d5a6e;
 }
 </style>

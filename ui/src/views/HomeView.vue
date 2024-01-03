@@ -15,6 +15,30 @@ const seriesEpisodes = ref(null);
 const route = useRoute();
 const series = ref(null);
 
+const loadEpisode = (episodeId) => {
+  console.log("loadEpisode", episodeId);
+  loadData(episodeId);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+const loadSeries = async (seriesId) => {
+  const episodesRef = collection(db, 'episodes');
+  const seriesQuery = query(episodesRef, where('seriesId', '==', seriesId), orderBy('timestamp'), limit(1));
+  const querySnapshot = await getDocs(seriesQuery);
+
+  if (!querySnapshot.empty) {
+    const firstEpisode = querySnapshot.docs[0].data();
+    console.log(firstEpisode);
+    // Load the first episode here
+    episode.value = firstEpisode;
+    getServiceData();
+    await getSeriesData();
+    await getAllEpisodes();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    console.log('No episodes found for this series.');
+  }
+}
 
 const getServiceData = () => {
   console.log(episode.value);
@@ -76,19 +100,16 @@ const getAllSeries = async () => {
   }
 }
 
-const loadData = async () => {
+const loadData = async (id) => {
   //reset data
-  episode.value = null;
-  serviceData.value = null;
-  seriesData.value = null;
-  seriesEpisodes.value = null;
+  // episode.value = null;
+  // serviceData.value = null;
+  // seriesData.value = null;
+  // seriesEpisodes.value = null;
 
-  //check if id is in url
-  const urlParams = new URLSearchParams(window.location.search);
-  const id = urlParams.get('id');
   console.log(id);
   if (id) {
-    console.log('found ID in url... loading episode');
+    console.log('loading episode by id');
 
     //get episode by id from db
     const docRef = doc(db, 'episodes', id);
@@ -98,8 +119,13 @@ const loadData = async () => {
       episode.value = docSnap.data();
       getServiceData();
       await getSeriesData();
-      await getAllEpisodes();
-      await getAllSeries();
+      if (!seriesEpisodes.value) {
+        await getAllEpisodes();
+      }
+      if (!series.value) {
+        await getAllSeries();
+      }
+
     } else {
       console.log('No such document!');
     }
@@ -128,17 +154,20 @@ watch(route, loadData, { deep: true })
 </script>
 
 <template>
+    <a href="your-live-stream-link" class="fab" target="_blank">
+    Looking for our live stream? Click here!
+  </a>
   <EpisodeCard v-if="serviceData" :episodeImage=seriesData.image :episodeTitle=episode.title :episodeDate="episode.date"
     episodeDescription="Episode Description" :serviceTypes=episode.serviceTypes :serviceData="serviceData" />
   <h1 class="text-centered">More from this series:</h1>
   <div v-if="serviceData" class="card-container">
     <EpisodeCardSmall v-for="(episode, index) in seriesEpisodes" :key="index" :episodeImage=seriesData.image
-      :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" />
+      :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" @select-episode="loadEpisode" />
   </div>
   <h1 class="text-centered">Recent series:</h1>
   <div v-if="series" class="card-container">
-    <SeriesCardSmall v-for="(series, index) in series" :key="index" :seriesImage=series.image
-      :seriesTitle=series.title :seriesId="series.id" :seriesStartDate="series.startDate" :seriesEndDate="series.endDate" />
+    <SeriesCardSmall v-for="(series, index) in series" :key="index" :seriesImage=series.image :seriesTitle=series.title
+      :seriesId="series.id" :seriesStartDate="series.startDate" :seriesEndDate="series.endDate" :seriesDescription="series.description" @select-series="loadSeries"/>
   </div>
 </template>
 
@@ -158,6 +187,33 @@ watch(route, loadData, { deep: true })
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
+  }
+}
+
+.fab {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgb(190, 32, 46);
+  color: white;
+  padding: 10px 10px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 15px;
+  transition: transform .1s ease-in-out;
+  animation: hover 1.5s infinite alternate;
+}
+
+.fab:hover {
+  transform: scale(1.5);
+}
+
+@keyframes hover {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
   }
 }
 </style>

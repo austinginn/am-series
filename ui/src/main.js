@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import { initializeApp } from "firebase/app";
 import { getFirestore } from 'firebase/firestore'
+import { getStorage }  from 'firebase/storage'
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -20,5 +21,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore
 export const db = getFirestore(app);
 
+// Initialize Firebase Storage
+export const storage = getStorage(app);
 
 createApp(App).use(router).mount('#app')

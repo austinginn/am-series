@@ -1,5 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import PortalView from '../views/PortalView.vue'
+import AddSeries from '@/components/AddSeries.vue'
+import AddEpisode from '@/components/AddEpisode.vue'
+import Episodes from '@/components/Episodes.vue'
+import Config from '@/components/Config.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -9,6 +14,34 @@ const router = createRouter({
       name: 'home',
       component: HomeView
     },
+    {
+      path: '/portal',
+      name: 'portal',
+      component: PortalView,
+      children: [
+        {
+          path: 'add-series',
+          name: 'AddSeries',
+          component: AddSeries
+        },
+        {
+          path: 'add-episode',
+          name: 'AddEpisode',
+          component: AddEpisode
+        },
+        {
+          path: 'episodes',
+          name: 'Episodes',
+          component: Episodes
+        },
+        {
+          path: 'config',
+          name: 'Config',
+          component: Config
+        }
+      ]
+    }
+
   ]
 })
 

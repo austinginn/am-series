@@ -7,13 +7,19 @@
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
           style="width: 100%; height: 100%;border-top-left-radius: 10px; border-top-right-radius: 10px;"></iframe>
         <iframe v-if='player == "vimeo"' :src="embed" frameborder="0" allow="autoplay; fullscreen; picture-in-picture"
-          allowfullscreen style="width: 100%; height: 100%; border-top-left-radius: 10px; border-top-right-radius: 10px;"></iframe>
+          allowfullscreen
+          style="width: 100%; height: 100%; border-top-left-radius: 10px; border-top-right-radius: 10px;"></iframe>
       </div>
     </div>
     <div class="episode-info">
-      <h2>{{ episodeTitle }} <span v-if="sType"> - {{ selected }}</span></h2>
+      <h2>{{ episodeTitle }} <span v-if="sType"> - {{ sType }} {{ selected }}</span></h2>
       <p class="text-centered" v-if="!sType"> {{ episodeDate }} </p>
-      <p class="text-centered" v-if="speaker && sType">by {{ speaker }} on {{ episodeDate }} </p>
+      <div v-if="scripture.length > 0" class="text-centered">
+        <span>Scripture: </span>
+        <span v-for="( script, index ) in scripture" :key="index"><a :href="script.url" target="_blank">{{
+          script.reference }}</a> | </span>
+      </div>
+      <p class="text-centered" v-if="speaker && sType">message by {{ speaker }} on {{ episodeDate }} </p>
     </div>
     <div v-if="!sType" class="episode-actions">
       <button class="button" v-for="( serviceType, index ) in  serviceTypes " :key="index"
@@ -32,7 +38,7 @@
 </template>
   
 <script>
-import { ref, toRefs } from 'vue';
+import { ref, toRefs, watch } from 'vue';
 
 export default {
   props: {
@@ -51,6 +57,7 @@ export default {
     const embed = ref(null);
     const player = ref(null);
     const speaker = ref(null);
+    const scripture = ref([]);
 
     const onButtonClick = (serviceType) => {
       // handle button click
@@ -62,14 +69,28 @@ export default {
       //get speaker
       speaker.value = serviceData.value[sType.value][0].speaker;
 
+      //get scripture for first in the array
+      scripture.value = [];
+      for (let i = 0; i < serviceData.value[sType.value][0].scripture.length; i++) {
+
+        scripture.value.push({
+          reference: serviceData.value[sType.value][0].scripture[i].reference,
+          url: serviceData.value[sType.value][0].scripture[i].url
+        });
+      }
+
+      console.log("scripture", scripture.value);
+
+
+
       //get first video in array
       const videoUrl = serviceData.value[sType.value][0].videoUrl;
-      if(serviceData.value[sType.value][0].videoPlatform === 'vimeo') {
+      if (serviceData.value[sType.value][0].videoPlatform === 'vimeo') {
         player.value = "vimeo";
         embed.value = getVimeoId(videoUrl);
         return;
       }
-      if(serviceData.value[sType.value][0].videoPlatform === 'youtube') {
+      if (serviceData.value[sType.value][0].videoPlatform === 'youtube') {
         player.value = "youtube";
         embed.value = getYoutubeId(videoUrl);
         return;
@@ -79,6 +100,16 @@ export default {
     const onServiceClick = (index) => {
       //handle service click
       selected.value = serviceData.value[sType.value][index].type;
+
+      //get scripture
+      scripture.value = [];
+      for (let i = 0; i < serviceData.value[sType.value][index].scripture.length; i++) {
+
+        scripture.value.push({
+          reference: serviceData.value[sType.value][index].scripture[i].reference,
+          url: serviceData.value[sType.value][index].scripture[i].url
+        });
+      }
 
       const videoUrl = serviceData.value[sType.value][index].videoUrl;
 
@@ -101,6 +132,7 @@ export default {
       selected.value = null;
       embed.value = null;
       player.value = null;
+      scripture.value = [];
     }
 
     const getVimeoId = (url) => {
@@ -119,6 +151,11 @@ export default {
       return `https://www.youtube.com/embed/${videoId}?modestbranding=1`;;
     }
 
+    watch(() => props.episodeTitle, () => {
+      console.log("episodeTitle changed")
+      onBackClick();
+    });
+
     return {
       episodeImage,
       episodeTitle,
@@ -130,6 +167,7 @@ export default {
       embed,
       player,
       speaker,
+      scripture,
       onButtonClick,
       onServiceClick,
       onBackClick
@@ -226,6 +264,7 @@ export default {
   bottom: 0;
   left: 10px;
 }
+
 .text-centered {
   text-align: center;
 }
