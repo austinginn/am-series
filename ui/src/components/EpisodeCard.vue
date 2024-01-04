@@ -18,31 +18,32 @@
         </div>
       </div>
     </div>
-      <div class="episode-info">
-        <h2>{{ episodeTitle }} <span v-if="sType"> - {{ sType }} {{ selected }}</span></h2>
-        <p class="text-centered" v-if="!sType"> {{ episodeDate }} </p>
-        <div v-if="scripture.length > 0" class="text-centered">
-          <span>Scripture: </span>
-          <span v-for="( script, index ) in scripture" :key="index"><a :href="script.url" target="_blank">{{
-            script.reference }}</a> | </span>
-        </div>
-        <p class="text-centered" v-if="speaker && sType">Message by {{ speaker }} on {{ episodeDate }} </p>
+    <div class="episode-info">
+      <h2>{{ episodeTitle }} <span v-if='sType && sType != "Default"'> - {{ sType }} {{ selected }}</span><span
+          v-if='sType && sType == "Default"'> - {{ selected }}</span></h2>
+      <p class="text-centered" v-if="!sType"> {{ episodeDate }} </p>
+      <div v-if="scripture.length > 0" class="text-centered">
+        <span>Scripture: </span>
+        <span v-for="( script, index ) in scripture" :key="index"><a :href="script.url" target="_blank">{{
+          script.reference }}</a> | </span>
       </div>
-      <div v-if="!sType" class="episode-actions">
-        <button class="button" v-for="( serviceType, index ) in  serviceTypes " :key="index"
-          @click="onButtonClick(serviceType)">{{ serviceType }}</button>
-      </div>
-      <div v-if="sType" class="episode-types">
-        <button class="button" v-for="( service, index ) in  serviceData[sType] " :key="index"
-          @click="onServiceClick(index)">{{
-            service.type }}</button>
-        <button v-if="audio.flag" class="button" @click="onAudioClick()">Listen</button>
-      </div>
-      <div v-if="sType" class="episode-back">
-        <button class="button" @click="onBackClick()">Back</button>
-      </div>
-
+      <p class="text-centered" v-if="speaker && sType">Message by {{ speaker }} on {{ episodeDate }} </p>
     </div>
+    <div v-if="!sType" class="episode-actions">
+      <button class="button" v-for="( serviceType, index ) in  serviceTypes " :key="index"
+        @click="onButtonClick(serviceType)">{{ serviceType }}</button>
+    </div>
+    <div v-if="sType" class="episode-types">
+      <button class="button" v-for="( service, index ) in  serviceData[sType] " :key="index"
+        @click="onServiceClick(index)">{{
+          service.type }}</button>
+      <button v-if="audio.flag" class="button" @click="onAudioClick()">Listen</button>
+    </div>
+    <div v-if='sType && sType != "Default"' class="episode-back">
+      <button class="button" @click="onBackClick()">Back</button>
+    </div>
+
+  </div>
 </template>
   
 <script>
@@ -190,9 +191,19 @@ export default {
       return `https://www.youtube.com/embed/${videoId}?modestbranding=1`;;
     }
 
+    onMounted(() => {
+      console.log("mounted");
+      if (serviceTypes.value[0] == "Default") {
+        onButtonClick(serviceTypes.value[0]);
+      }
+    });
+
     watch(() => props.episodeTitle, () => {
       console.log("episodeTitle changed")
       onBackClick();
+      if (serviceTypes.value[0] == "Default") {
+        onButtonClick(serviceTypes.value[0]);
+      }
     });
 
     return {
@@ -309,6 +320,7 @@ export default {
 .text-centered {
   text-align: center;
 }
+
 .audio-bottom {
   position: absolute;
   bottom: 0;
