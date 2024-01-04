@@ -11,7 +11,7 @@
             <!-- Repeat the above for speakers and subcats -->
             <h2>Sub Categories:</h2>
             <div v-for="(subcat, index) in config.subcats" :key="index" class="input-group">
-                <input v-model="config.subcats[index]" placeholder="Sub Category"  />
+                <input v-model="config.subcats[index]" placeholder="Sub Category" />
                 <button class="delete-button" @click.prevent="deleteSubcat(index)">Delete</button>
             </div>
             <button class="add-button" @click.prevent="addSubcat">Add Sub Category</button>
@@ -23,6 +23,13 @@
                 <button class="delete-button" @click.prevent="deleteSpeaker(index)">Delete</button>
             </div>
             <button class="add-button" @click.prevent="addSpeaker">Add Speaker</button>
+
+            <!-- Live stream link-->
+            <h2>Live Stream:</h2>
+            <p>Leave this empty to disable the live stream helper.</p>
+            <div class="input-group">
+                <input v-model="config.liveUrl" placeholder="link to your live stream" />
+            </div>
 
             <div class="button-container">
                 <button class="save-button" type="submit">Save</button>
@@ -58,6 +65,11 @@ export default {
         };
 
         const updateConfig = async () => {
+            if (config.value.liveUrl && !config.value.liveUrl.startsWith('https://')) {
+                // Invalidate the form
+                config.value.liveUrl = 'https://' + config.value.liveUrl;
+            }
+
             const docRef = doc(db, 'config', configId.value);
             await setDoc(docRef, config.value);
         };
@@ -68,7 +80,7 @@ export default {
 
         const addSubcat = () => {
             config.value.subcats.push('');
-        };  
+        };
 
         const addSpeaker = () => {
             config.value.speakers.push('');
@@ -196,7 +208,7 @@ export default {
 }
 
 .button-container {
-    
+
     display: flex;
     justify-content: flex-end;
 }

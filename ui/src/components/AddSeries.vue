@@ -6,7 +6,7 @@
       <input id="seriesTitle" v-model="series.title" type="text" required />
 
       <label for="seriesDescription">Series Description:</label>
-      <textarea id="seriesDescription" v-model="series.description" required></textarea>
+      <textarea id="seriesDescription" v-model="series.description"></textarea>
 
       <label for="seriesStartDate">Start Date:</label>
       <input id="seriesStartDate" v-model="series.startDate" type="date" required />
@@ -73,7 +73,8 @@ export default {
 
             // Convert start date string to JavaScript Date
             if (typeof series.value.startDate === 'string') {
-              series.value.startDate = new Date(series.value.startDate);
+              let [year, month, day] = series.value.startDate.split('-');
+              series.value.startDate = new Date(year, month - 1, day);
             }
 
             series.value.startDate = new Date(series.value.startDate).toLocaleDateString('en-US', {
@@ -84,7 +85,8 @@ export default {
 
             //end date
             if (typeof series.value.endDate === 'string') {
-              series.value.endDate = new Date(series.value.endDate);
+              let [year, month, day] = series.value.endDate.split('-');
+              series.value.endDate = new Date(year, month - 1, day);
             }
             // Convert JavaScript Date to Firebase Timestamp
             series.value.timestamp = Timestamp.fromDate(series.value.endDate);
@@ -105,7 +107,7 @@ export default {
               id: uid,
               image: downloadURL
             });
-            
+
             resolve();
           });
       });

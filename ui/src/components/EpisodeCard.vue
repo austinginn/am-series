@@ -9,36 +9,44 @@
         <iframe v-if='player == "vimeo"' :src="embed" frameborder="0" allow="autoplay; fullscreen; picture-in-picture"
           allowfullscreen
           style="width: 100%; height: 100%; border-top-left-radius: 10px; border-top-right-radius: 10px;"></iframe>
+        <div v-if="player == 'audio'" class="audio-container">
+          <img :src="episodeImage" alt="Episode Image" class="episode-image" />
+          <audio controls class="audio-bottom">
+            <source :src="audio.url" type="audio/mpeg">
+            Your browser does not support the audio element.
+          </audio>
+        </div>
       </div>
     </div>
-    <div class="episode-info">
-      <h2>{{ episodeTitle }} <span v-if="sType"> - {{ sType }} {{ selected }}</span></h2>
-      <p class="text-centered" v-if="!sType"> {{ episodeDate }} </p>
-      <div v-if="scripture.length > 0" class="text-centered">
-        <span>Scripture: </span>
-        <span v-for="( script, index ) in scripture" :key="index"><a :href="script.url" target="_blank">{{
-          script.reference }}</a> | </span>
+      <div class="episode-info">
+        <h2>{{ episodeTitle }} <span v-if="sType"> - {{ sType }} {{ selected }}</span></h2>
+        <p class="text-centered" v-if="!sType"> {{ episodeDate }} </p>
+        <div v-if="scripture.length > 0" class="text-centered">
+          <span>Scripture: </span>
+          <span v-for="( script, index ) in scripture" :key="index"><a :href="script.url" target="_blank">{{
+            script.reference }}</a> | </span>
+        </div>
+        <p class="text-centered" v-if="speaker && sType">Message by {{ speaker }} on {{ episodeDate }} </p>
       </div>
-      <p class="text-centered" v-if="speaker && sType">message by {{ speaker }} on {{ episodeDate }} </p>
-    </div>
-    <div v-if="!sType" class="episode-actions">
-      <button class="button" v-for="( serviceType, index ) in  serviceTypes " :key="index"
-        @click="onButtonClick(serviceType)">{{ serviceType }}</button>
-    </div>
-    <div v-if="sType" class="episode-types">
-      <button class="button" v-for="( service, index ) in  serviceData[sType] " :key="index"
-        @click="onServiceClick(index)">{{
-          service.type }}</button>
-    </div>
-    <div v-if="sType" class="episode-back">
-      <button class="button" @click="onBackClick()">Back</button>
-    </div>
+      <div v-if="!sType" class="episode-actions">
+        <button class="button" v-for="( serviceType, index ) in  serviceTypes " :key="index"
+          @click="onButtonClick(serviceType)">{{ serviceType }}</button>
+      </div>
+      <div v-if="sType" class="episode-types">
+        <button class="button" v-for="( service, index ) in  serviceData[sType] " :key="index"
+          @click="onServiceClick(index)">{{
+            service.type }}</button>
+        <button v-if="audio.flag" class="button" @click="onAudioClick()">Listen</button>
+      </div>
+      <div v-if="sType" class="episode-back">
+        <button class="button" @click="onBackClick()">Back</button>
+      </div>
 
-  </div>
+    </div>
 </template>
   
 <script>
-import { ref, toRefs, watch } from 'vue';
+import { ref, toRefs, watch, onMounted } from 'vue';
 
 export default {
   props: {
@@ -58,10 +66,23 @@ export default {
     const player = ref(null);
     const speaker = ref(null);
     const scripture = ref([]);
+    const audio = ref({ flag: false, index: null, url: null });
 
     const onButtonClick = (serviceType) => {
       // handle button click
       sType.value = serviceType;
+
+      //check for audio
+      for (let i = 0; i < serviceData.value[sType.value].length; i++) {
+        if (serviceData.value[sType.value][i].audioUrl) {
+          audio.value.flag = true;
+          audio.value.index = i;
+          audio.value.url = serviceData.value[sType.value][i].audioUrl;
+          break;
+        } else {
+          audio.value.flag = false;
+        }
+      }
 
       //load first service in array
       selected.value = serviceData.value[sType.value][0].type;
@@ -97,6 +118,25 @@ export default {
       }
     };
 
+    const onAudioClick = () => {
+      console.log("audio clicked");
+      console.log(audio.value);
+
+      selected.value = "Audio";
+
+      //get scripture for
+      scripture.value = [];
+      for (let i = 0; i < serviceData.value[sType.value][audio.value.index].scripture.length; i++) {
+        scripture.value.push({
+          reference: serviceData.value[sType.value][audio.value.index].scripture[i].reference,
+          url: serviceData.value[sType.value][audio.value.index].scripture[i].url
+        });
+      }
+
+      player.value = "audio";
+
+    }
+
     const onServiceClick = (index) => {
       //handle service click
       selected.value = serviceData.value[sType.value][index].type;
@@ -104,7 +144,6 @@ export default {
       //get scripture
       scripture.value = [];
       for (let i = 0; i < serviceData.value[sType.value][index].scripture.length; i++) {
-
         scripture.value.push({
           reference: serviceData.value[sType.value][index].scripture[i].reference,
           url: serviceData.value[sType.value][index].scripture[i].url
@@ -168,6 +207,8 @@ export default {
       player,
       speaker,
       scripture,
+      audio,
+      onAudioClick,
       onButtonClick,
       onServiceClick,
       onBackClick
@@ -267,5 +308,10 @@ export default {
 
 .text-centered {
   text-align: center;
+}
+.audio-bottom {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
 }
 </style>

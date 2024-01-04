@@ -1,4 +1,5 @@
 <template>
+    <h2>Episodes</h2>
     <div>
         <input v-model="searchTerm" @input="search" placeholder="Search episodes..." />
 

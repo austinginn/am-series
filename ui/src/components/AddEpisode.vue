@@ -19,6 +19,17 @@
             <button @click.prevent="showContentForm = true">Next</button>
         </form>
         <form v-if="showContentForm" @submit.prevent="submitContentForm" class="series-form">
+            <div v-if="episodeFinal.serviceTypes.length > 0">
+                <div v-for="(serviceType, index) in episodeFinal.serviceTypes" :key="index">
+                    <h3>{{ serviceType }}</h3>
+                    <div v-for="(media, index) in episodeFinal[serviceType]" :key="index">
+                        <a :href="media.videoUrl" target="_blank">{{ media.type }}</a>
+                        <br>
+                        <a v-if='media.audioUrl' :href="media.audioUrl" target="_blank">{{ media.type }} - audio</a>
+                        <br v-if='media.audioUrl'>
+                    </div>
+                </div>
+            </div>
             <h2>Add Media</h2>
 
             <label for="categoryTitle">Category:</label>
@@ -88,8 +99,12 @@ import { doc, setDoc, collection, serverTimestamp, Timestamp, getDocs, orderBy, 
 import { db } from '@/main.js';
 import { ulid } from 'ulid';
 import { useRouter } from 'vue-router';
+import EpisodePreview from '@/components/EpisodePreview.vue';
 
 export default {
+    components: {
+        EpisodePreview
+    },
     setup() {
         const router = useRouter();
         const showModal = ref(false);
@@ -173,7 +188,7 @@ export default {
 
         const save = async (skip = false) => {
             console.log("in save");
-            if(!skip){
+            if (!skip) {
                 console.log("in save adding media");
                 addMedia();
             }
@@ -189,8 +204,11 @@ export default {
 
             // Convert string to JavaScript Date
             if (typeof episodeFinal.value.timestamp === 'string') {
-                episodeFinal.value.timestamp = new Date(episodeFinal.value.timestamp);
+                let [year, month, day] = episodeFinal.value.timestamp.split('-');
+                episodeFinal.value.timestamp = new Date(year, month - 1, day);
             }
+
+            console.log(episodeFinal.value.timestamp);
 
             episodeFinal.value.date = new Date(episodeFinal.value.timestamp).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -253,6 +271,7 @@ export default {
                 categoryTitle: '',
                 videoType: '',
                 videoUrl: '',
+                audioUrl: '',
                 description: '',
                 speaker: '',
                 scriptures: [],
@@ -329,6 +348,10 @@ export default {
 </script>
   
 <style scoped>
+h3 {
+    margin-bottom: 0;
+}
+
 .fas.fa-trash {
     cursor: pointer;
     font-size: 0.8em;
@@ -422,8 +445,8 @@ export default {
 }
 
 .button-container {
-  display: flex;
-  justify-content: center;
+    display: flex;
+    justify-content: center;
 }
 
 .modal-backdrop {

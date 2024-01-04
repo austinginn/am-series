@@ -14,6 +14,7 @@ const seriesData = ref(null);
 const seriesEpisodes = ref(null);
 const route = useRoute();
 const series = ref(null);
+const config = ref(null);
 
 const loadEpisode = (episodeId) => {
   console.log("loadEpisode", episodeId);
@@ -37,6 +38,17 @@ const loadSeries = async (seriesId) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
     console.log('No episodes found for this series.');
+  }
+}
+
+const getConfig = async () => {
+  const configQuery = query(collection(db, 'config'));
+  const querySnapshot = await getDocs(configQuery);
+
+  if (!querySnapshot.empty) {
+    const docSnap = querySnapshot.docs[0];
+    config.value = docSnap.data();
+    console.log(config.value);
   }
 }
 
@@ -144,6 +156,7 @@ const loadData = async (id) => {
   await getSeriesData();
   await getAllEpisodes();
   await getAllSeries();
+  await getConfig();
 }
 
 onMounted(loadData);
@@ -154,7 +167,7 @@ watch(route, loadData, { deep: true })
 </script>
 
 <template>
-    <a href="your-live-stream-link" class="fab" target="_blank">
+    <a v-if="config && config.liveUrl" :href="config.liveUrl" class="fab" target="_blank">
     Looking for our live stream? Click here!
   </a>
   <EpisodeCard v-if="serviceData" :episodeImage=seriesData.image :episodeTitle=episode.title :episodeDate="episode.date"

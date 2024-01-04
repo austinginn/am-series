@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!desktop" class="series-card" @click="onButtonClick(seriesId)">
+  <div v-if="!desktop || small" class="series-card" @click="onButtonClick(seriesId)">
     <img :src="seriesImage" alt="Series Image" class="series-image" />
     <div class="series-info">
       <h2 class="series-title">{{ seriesTitle }}</h2>
@@ -10,7 +10,7 @@
       <p class="series-date"> {{ seriesStartDate }} to {{ seriesEndDate }} </p>
     </div>
   </div>
-  <div v-if="desktop" class="series-card-small-desktop" @click="onButtonClick(seriesId)">
+  <div v-else class="series-card-small-desktop" @click="onButtonClick(seriesId)">
     <img :src="seriesImage" alt="series image" class="series-image-desktop" />
     <div class="series-info-desktop">
       <h2 class="series-title-desktop">{{ seriesTitle }}</h2>
@@ -34,6 +34,7 @@ export default {
     seriesStartDate: String,
     seriesEndDate: String,
     seriesId: String,
+    small: Boolean,
   },
   setup(props, { emit }) {
     const { seriesImage, seriesTitle, seriesDescription, seriesStartDate, seriesEndDate, seriesId } = toRefs(props);
@@ -122,6 +123,12 @@ export default {
 .series-title {
   margin: 0;
   font-size: 18px;
+}
+
+.series-title-desktop {
+  /* margin: 0;
+  font-size: 18px; */
+  margin-bottom: 10px;
 }
 
 .series-date {
