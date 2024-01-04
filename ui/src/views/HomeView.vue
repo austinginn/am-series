@@ -4,6 +4,7 @@ import EpisodeCardSmall from "@/components/EpisodeCardSmall.vue";
 import SeriesCardSmall from "@/components/SeriesCardSmall.vue";
 import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/main.js';
 
@@ -15,6 +16,14 @@ const seriesEpisodes = ref(null);
 const route = useRoute();
 const series = ref(null);
 const config = ref(null);
+const searchTerm = ref(null);
+const router = useRouter();
+
+
+const search = () => {
+  console.log("search", searchTerm.value);
+  router.push({ path: '/search', query: { q: searchTerm.value } });
+}
 
 const loadEpisode = (episodeId) => {
   console.log("loadEpisode", episodeId);
@@ -167,20 +176,31 @@ watch(route, loadData, { deep: true })
 </script>
 
 <template>
-    <a v-if="config && config.liveUrl" :href="config.liveUrl" class="fab" target="_blank">
+  <a v-if="config && config.liveUrl" :href="config.liveUrl" class="fab" target="_blank">
     Looking for our live stream? Click here!
   </a>
+
+  <div class="header">
+    <h1>Alpharetta Methodist</h1>
+    <div class="search-box">
+      <input type="text" v-model="searchTerm" placeholder="Search..." @keyup.enter="search"/>
+      <a href="/search" class="search-icon">
+        <i class="fas fa-search"></i>
+      </a>
+    </div>
+  </div>
   <EpisodeCard v-if="serviceData" :episodeImage=seriesData.image :episodeTitle=episode.title :episodeDate="episode.date"
     episodeDescription="Episode Description" :serviceTypes=episode.serviceTypes :serviceData="serviceData" />
-  <h1 class="text-centered">More from this series:</h1>
-  <div v-if="serviceData" class="card-container">
+  <h1 v-if="serviceData && seriesEpisodes.length > 1" class="text-centered">More from this series:</h1>
+  <div v-if="serviceData && seriesEpisodes.length > 1" class="card-container">
     <EpisodeCardSmall v-for="(episode, index) in seriesEpisodes" :key="index" :episodeImage=seriesData.image
       :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" @select-episode="loadEpisode" />
   </div>
   <h1 class="text-centered">Recent series:</h1>
   <div v-if="series" class="card-container">
     <SeriesCardSmall v-for="(series, index) in series" :key="index" :seriesImage=series.image :seriesTitle=series.title
-      :seriesId="series.id" :seriesStartDate="series.startDate" :seriesEndDate="series.endDate" :seriesDescription="series.description" @select-series="loadSeries"/>
+      :seriesId="series.id" :seriesStartDate="series.startDate" :seriesEndDate="series.endDate"
+      :seriesDescription="series.description" @select-series="loadSeries" />
   </div>
 </template>
 
@@ -200,6 +220,10 @@ watch(route, loadData, { deep: true })
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
+  }
+
+  .search-box {
+    width: 100%;
   }
 }
 
@@ -225,8 +249,51 @@ watch(route, loadData, { deep: true })
   from {
     transform: translateY(0);
   }
+
   to {
     transform: translateY(-10px);
   }
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  padding-bottom: 0;
+  padding-top: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin-right: 20px;
+}
+
+
+.search-box input {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.search-box {
+  position: relative;
+  width: 250px;
+}
+
+.search-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #333;
 }
 </style>

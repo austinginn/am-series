@@ -33,7 +33,7 @@
       <button class="button" v-for="( serviceType, index ) in  serviceTypes " :key="index"
         @click="onButtonClick(serviceType)">{{ serviceType }}</button>
     </div>
-    <div v-if="sType" class="episode-types">
+    <div v-if='sType && sType != "Default"' class="episode-types">
       <button class="button" v-for="( service, index ) in  serviceData[sType] " :key="index"
         @click="onServiceClick(index)">{{
           service.type }}</button>

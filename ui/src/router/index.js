@@ -6,6 +6,7 @@ import AddEpisode from '@/components/AddEpisode.vue'
 import Episodes from '@/components/Episodes.vue'
 import Config from '@/components/Config.vue'
 import Series from '@/components/Series.vue'
+import SearchView from '@/views/SearchView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,6 +15,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView
+    },
+    {
+      path: '/search',
+      name: 'search',
+      component: SearchView
     },
     {
       path: '/portal',
