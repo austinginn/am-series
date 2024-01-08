@@ -10,22 +10,27 @@
     </div>
     <div class="search-view">
         <div class="filters">
-            <i class="fas fa-filter"></i>
 
-            <input id="start-date" v-model="startDate" type="date" placeholder="Start Date" />
 
-            <input id="end-date" v-model="endDate" type="date" placeholder="End Date" />
+            <div class="date-filters">
+                <i class="fas fa-filter"></i>
+                <span>Dates</span>
+                <input id="start-date" v-model="startDate" type="date" placeholder="Start Date" />
+                <span>to</span>
+                <input id="end-date" v-model="endDate" type="date" placeholder="End Date" />
+            </div>
 
             <select id="speaker" v-model="selectedSpeaker">
-                <option disabled selected value="">Speaker</option>
-                <option v-for="(speaker, index) in speakers" :key="index" :value="speaker">{{ speaker }}</option>
+                <option value="">Select Speaker</option>
+                <option v-for="(speaker, index) in config.speakers" :key="index" :value="speaker">{{ speaker }}</option>
             </select>
 
             <select id="service-type" v-model="selectedServiceType">
-                <option disabled selected value="">Service Type</option>
-                <option v-for="(serviceType, index) in serviceTypes" :key="index" :value="serviceType">{{ serviceType }}
+                <option value="">Select Service Type</option>
+                <option v-for="(serviceType, index) in config.subcats" :key="index" :value="serviceType">{{ serviceType }}
                 </option>
             </select>
+            <button @click="resetFilters">Reset</button>
         </div>
         <div class="episodes">
             <EpisodeCardSmall v-for="(episode, index) in filteredEpisodes" :key="index" :episodeImage=episode.image
@@ -35,7 +40,7 @@
 </template>
   
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import EpisodeCardSmall from '@/components/EpisodeCardSmall.vue';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/main.js';
@@ -47,18 +52,29 @@ export default {
     },
     setup() {
         const searchTerm = ref('');
+        const selectedSpeaker = ref('');
+        const selectedServiceType = ref('');
         const startDate = ref(null);
         const endDate = ref(null);
         const episodes = ref([]); // replace with your episodes data
         const route = useRoute();
+        const config = ref({
+            categories: [],
+            speakers: [],
+            liveUrl: '',
+            subcats: [],
+        });
 
         const filteredEpisodes = computed(() => {
+            console.log('filteredEpisodes computed');
             // filter episodes based on search term and date range
             return episodes.value.filter(episode => {
                 const matchesSearchTerm = !searchTerm.value || episode.title.includes(searchTerm.value) || episode.speaker.includes(searchTerm.value);
                 const matchesStartDate = !startDate.value || new Date(episode.timestamp.toDate()) >= new Date(startDate.value);
                 const matchesEndDate = !endDate.value || new Date(episode.timestamp.toDate()) <= new Date(endDate.value);
-                return matchesSearchTerm && matchesStartDate && matchesEndDate;
+                const matchesSpeaker = !selectedSpeaker.value || episode.speaker === selectedSpeaker.value;
+                const matchesServiceType = !selectedServiceType.value || episode.serviceType === selectedServiceType.value;
+                return matchesSearchTerm && matchesStartDate && matchesEndDate && matchesSpeaker && matchesServiceType;
             });
         });
 
@@ -92,7 +108,7 @@ export default {
                         episode.timestamp = episodeList[i].timestamp;
                         episode.date = episodeList[i].date;
                         episode.title = makeTitle(episodeList[i].title, episodeList[i].serviceTypes[x], episodeList[i][episodeList[i].serviceTypes[x]][y].type);
-                        // episode.serviceType = episodeList[i].serviceTypes[x];
+                        episode.serviceType = episodeList[i][episodeList[i].serviceTypes[x]][y].type;
                         episode.image = episodeList[i].image;
                         episode.speaker = episodeList[i][episodeList[i].serviceTypes[x]][y].speaker;
                         episodes.value.push(episode);
@@ -103,9 +119,33 @@ export default {
             console.log(episodes.value);
         };
 
+        const getConfig = async () => {
+            const configQuery = query(collection(db, 'config'));
+            const configSnapshot = await getDocs(configQuery);
+
+            if (!configSnapshot.empty) {
+                const firstDoc = configSnapshot.docs[0];
+                config.value = firstDoc.data();
+                console.log(config.value); // Log the data of the first config document
+            }
+        }
+
+        const resetFilters = () => {
+            startDate.value = '';
+            endDate.value = '';
+            selectedSpeaker.value = '';
+            selectedServiceType.value = '';
+            searchTerm.value = '';
+        };
+
         onMounted(async () => {
             await getAllEpisodes();
+            await getConfig();
             searchTerm.value = route.query.q || '';
+        });
+
+        watch([selectedSpeaker, selectedServiceType], () => {
+            filteredEpisodes.value;
         });
 
         return {
@@ -113,6 +153,10 @@ export default {
             startDate,
             endDate,
             filteredEpisodes,
+            config,
+            selectedServiceType,
+            selectedSpeaker,
+            resetFilters,
             makeTitle
         };
     },
@@ -129,15 +173,16 @@ export default {
 
 .date-filters {
     display: flex;
-    justify-content: space-between;
+    /* justify-content: space-between;
     align-items: center;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 20px; */
 }
 
 .date-filters label {
     margin-right: 10px;
-    font-weight: bold;
+    margin: 5px;
+    /* font-weight: bold; */
 }
 
 .date-filter {
@@ -178,7 +223,7 @@ export default {
 }
 
 .header h1 {
-   margin: 0px;
+    margin: 0px;
 }
 
 
@@ -210,6 +255,8 @@ h2 {
 
 .filters {
     display: flex;
+    flex-wrap: wrap;
+    /* justify-content: space-between; */
     align-items: center;
     gap: 10px;
     padding: 10px;
@@ -243,5 +290,60 @@ h2 {
     background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="black"><path d="M7 7l5 5 5-5z"/></svg>') no-repeat;
     background-position: right 10px top 50%;
     background-size: 12px;
+}
+
+#speaker {
+    width: 150px;
+}
+
+#service-type {
+    width: 150px;
+}
+
+button {
+    display: inline-block;
+    padding: 5px 10px;
+    /* margin: 10px 2px; */
+    /* font-size: 16px; */
+    text-align: center;
+    text-decoration: none;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    background-color: rgb(190, 32, 46);
+}
+
+button:hover {
+    background-color: rgba(190, 32, 45, 0.526);
+}
+
+/* input {
+    margin-right: 10px;
+} */
+
+@media (max-width: 600px) {
+    .filters>* {
+        flex-basis: 100%;
+        /* margin-bottom: 10px; */
+    }
+    input {
+        margin-left: 10px;
+    }
+    select {
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    button {
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+}
+i {
+    margin: 5px;
+}
+span {
+    margin: 5px;
 }
 </style>
