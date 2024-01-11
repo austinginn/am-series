@@ -7,6 +7,7 @@ import Episodes from '@/components/Episodes.vue'
 import Config from '@/components/Config.vue'
 import Series from '@/components/Series.vue'
 import SearchView from '@/views/SearchView.vue'
+import EditEpisode from '@/components/EditEpisode.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,6 +52,11 @@ const router = createRouter({
           path: 'config',
           name: 'Config',
           component: Config
+        },
+        {
+          path: 'edit-episode/:id',
+          name: 'EditEpisode',
+          component: EditEpisode
         }
       ]
     }

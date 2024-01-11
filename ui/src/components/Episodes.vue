@@ -1,10 +1,10 @@
 <template>
-    <h2>Episodes</h2>
+    <h2>Content</h2>
     <div>
-        <input v-model="searchTerm" @input="search" placeholder="Search episodes..." />
+        <!-- <input v-model="searchTerm" @input="search" placeholder="Search episodes..." /> -->
 
         <EpisodeCardSmall v-for="episode in episodes" :key="episode.id"
-            :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" :episodeImage="episode.image" :small="true" />
+            :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" :episodeImage="episode.image" :small="true" @select-episode="onClick" />
 
         <button v-if="showMoreButton" @click="showMore">Show more</button>
     </div>
@@ -15,15 +15,23 @@ import { ref, computed, onMounted } from 'vue';
 import { collection, query, orderBy, limit as fbLimit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/main.js';
 import EpisodeCardSmall from '@/components/EpisodeCardSmall.vue';
+import { useRouter } from 'vue-router';
 
 export default {
     components: {
         EpisodeCardSmall
     },
     setup() {
+        const router = useRouter();
         const episodes = ref([]);
         const searchTerm = ref('');
         const limit = ref(10);
+
+        const onClick = (id) => {
+            console.log("onClick", id);
+            //navigate to edit page with id under portal
+            router.push({ name: 'EditEpisode', params: { id: id } });
+        };
 
 
         const fetchEpisodes = async () => {
@@ -52,7 +60,8 @@ export default {
             searchTerm,
             fetchEpisodes,
             search,
-            showMore
+            showMore,
+            onClick
         };
     }
 }

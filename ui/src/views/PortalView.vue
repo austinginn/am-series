@@ -24,7 +24,7 @@ const toggleSidebar = () => {
 
         <nav>
           <router-link to="/portal/series">Series</router-link>
-            <router-link to="/portal/episodes">Episodes</router-link>
+            <router-link to="/portal/episodes">Content</router-link>
             <router-link to="/portal/add-series">Add Series</router-link>
             <router-link to="/portal/add-episode">Add Content</router-link>
             <router-link to="/portal/config">Config</router-link>

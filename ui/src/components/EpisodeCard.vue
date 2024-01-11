@@ -25,7 +25,7 @@
       <div v-if="scripture.length > 0" class="text-centered">
         <span>Scripture: </span>
         <span v-for="( script, index ) in scripture" :key="index"><a :href="script.url" target="_blank">{{
-          script.reference }}</a> | </span>
+          script.reference }}</a> <span v-if="index < scripture.length - 1"> | </span> </span>
       </div>
       <p class="text-centered" v-if="speaker && sType">Message by {{ speaker }} on {{ episodeDate }} </p>
     </div>
@@ -97,7 +97,7 @@ export default {
 
         scripture.value.push({
           reference: serviceData.value[sType.value][0].scripture[i].reference,
-          url: serviceData.value[sType.value][0].scripture[i].url
+          url: serviceData.value[sType.value][0].scripture[i].link
         });
       }
 

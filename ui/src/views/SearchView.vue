@@ -14,7 +14,7 @@
 
             <div class="date-filters">
                 <i class="fas fa-filter"></i>
-                <span>Dates</span>
+                <span>From</span>
                 <input id="start-date" v-model="startDate" type="date" placeholder="Start Date" />
                 <span>to</span>
                 <input id="end-date" v-model="endDate" type="date" placeholder="End Date" />
@@ -328,9 +328,9 @@ button:hover {
         flex-basis: 100%;
         /* margin-bottom: 10px; */
     }
-    input {
+    /* input {
         margin-left: 10px;
-    }
+    } */
     select {
         margin-left: 10px;
         margin-right: 10px;
@@ -340,10 +340,10 @@ button:hover {
         margin-right: 10px;
     }
 }
-i {
+.date-filters i {
     margin: 5px;
 }
-span {
+.date-filters span {
     margin: 5px;
 }
 </style>
