@@ -1,16 +1,16 @@
 <template>
-    <div v-if="!desktop || small" class="episode-card-small" @click="handleCardClick(episodeId)">
-        <img :src="episodeImage" alt="Episode image" class="episode-image" />
+    <div v-if="!desktop || small" class="episode-card-small" @click="handleCardClick(content.id)">
+        <img :src="content.image" alt="Episode image" class="episode-image" />
         <div class="episode-info">
-            <h2 class="episode-title">{{ episodeTitle }}</h2>
-            <p class="episode-date">{{ episodeDate }}</p>
+            <h2 class="episode-title">{{ content.title }}</h2>
+            <p class="episode-date">{{ content.date }}</p>
         </div>
     </div>
-    <div v-else class="episode-card-small-desktop" @click="handleCardClick(episodeId)">
-        <img :src="episodeImage" alt="Episode image" class="episode-image-desktop" />
+    <div v-else class="episode-card-small-desktop" @click="handleCardClick(content.id)">
+        <img :src="content.image" alt="Episode image" class="episode-image-desktop" />
         <div class="episode-info-desktop">
-            <h2 class="episode-title-desktop">{{ episodeTitle }}</h2>
-            <p class="episode-date-desktop">{{ episodeDate }}</p>
+            <h2 class="episode-title-desktop">{{ content.title }}</h2>
+            <p class="episode-date-desktop">{{ content.date }}</p>
         </div>
     </div>
 </template>
@@ -20,19 +20,15 @@ import { useRouter } from 'vue-router';
 
 export default {
     props: {
-        episodeImage: String,
-        episodeTitle: String,
-        episodeDate: String,
-        episodeId: String,
+        content: Object,
         small: Boolean
     },
     setup(props, { emit }) {
-        const { episodeImage, episodeTitle, episodeDate, episodeId } = toRefs(props);
+        const { content } = toRefs(props);
         const router = useRouter(); // Initialize router
         const windowWidth = ref(window.innerWidth);
         const desktop = computed(() => windowWidth.value >= 768);
-        console.log(episodeId.value);
-
+        
         const handleResize = () => {
             windowWidth.value = window.innerWidth;
         };
@@ -53,10 +49,7 @@ export default {
         }
 
         return {
-            episodeImage,
-            episodeTitle,
-            episodeDate,
-            episodeId,
+            content,
             desktop,
             handleCardClick
         }

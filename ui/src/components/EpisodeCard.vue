@@ -1,16 +1,17 @@
 <template>
   <div class="episode-card">
     <div class="episode-image-container">
-      <img v-if="!selected" :src="episodeImage" alt="Episode Image" class="episode-image" />
-      <div class="episode" v-else>
-        <iframe v-if='player == "youtube"' :src="embed" frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
-          style="width: 100%; height: 100%;border-top-left-radius: 10px; border-top-right-radius: 10px;"></iframe>
-        <iframe v-if='player == "vimeo"' :src="embed" frameborder="0" allow="autoplay; fullscreen; picture-in-picture"
+      <img  :src="content.image" alt="Episode Image" class="episode-image" />
+      <div class="episode" v-if="selectedMedia">
+        <iframe v-if='selectedMedia.videoPlatform == "youtube"' :src="getYoutubeId(selectedMedia.videoUrl)"
+          frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen
+          style="width: 100%; height: 100%;border-top-left-radius: 10px; border-top-right-radius: 10px;"></iframe>
+        <iframe v-if='selectedMedia.videoPlatform == "vimeo"' :src="getVimeoId(selectedMedia.videoUrl)" frameborder="0"
+          allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
           style="width: 100%; height: 100%; border-top-left-radius: 10px; border-top-right-radius: 10px;"></iframe>
         <div v-if="player == 'audio'" class="audio-container">
-          <img :src="episodeImage" alt="Episode Image" class="episode-image" />
+          <img :src="content.image" alt="Episode Image" class="episode-image" />
           <audio controls class="audio-bottom">
             <source :src="audio.url" type="audio/mpeg">
             Your browser does not support the audio element.
@@ -19,27 +20,27 @@
       </div>
     </div>
     <div class="episode-info">
-      <h2>{{ episodeTitle }} <span v-if='sType && sType != "Default"'> - {{ sType }} {{ selected }}</span><span
-          v-if='sType && sType == "Default"'> - {{ selected }}</span></h2>
-      <p class="text-centered" v-if="!sType"> {{ episodeDate }} </p>
-      <div v-if="scripture.length > 0" class="text-centered">
+      <h2>{{ content.title }} <span v-if='sType && sType != "Default"'> - {{ sType }} {{ selectedMedia.subCategory
+      }}</span><span v-if='sType && sType == "Default"'> - {{ selected }}</span></h2>
+      <p class="text-centered" v-if="!sType"> {{ content.date }} </p>
+      <div v-if="selectedMedia && selectedMedia.scriptures.length > 0" class="text-centered">
         <span>Scripture: </span>
-        <span v-for="( script, index ) in scripture" :key="index"><a :href="script.url" target="_blank">{{
-          script.reference }}</a> <span v-if="index < scripture.length - 1"> | </span> </span>
+        <span v-for="( script, index ) in selectedMedia.scriptures" :key="index"><a :href="script.link" target="_blank">{{
+          script.reference }}</a> <span v-if="index < selectedMedia.scriptures.length - 1"> | </span> </span>
       </div>
-      <p class="text-centered" v-if="speaker && sType">Message by {{ speaker }} on {{ episodeDate }} </p>
+      <p class="text-centered" v-if="sType">Message by {{ selectedMedia.speaker }} on {{ content.date }} </p>
     </div>
     <div v-if="!sType" class="episode-actions">
-      <button class="button" v-for="( serviceType, index ) in  serviceTypes " :key="index"
-        @click="onButtonClick(serviceType)">{{ serviceType }}</button>
+      <button class="button" v-for="( category, index ) in  contentCategories " :key="index"
+        @click="onCategoryClick(category)">{{ category }}</button>
     </div>
-    <div v-if='sType && sType != "Default"' class="episode-types">
-      <button class="button" v-for="( service, index ) in  serviceData[sType] " :key="index"
+    <div v-if='sType && !onlyOne' class="episode-types">
+      <button v-if="mediaArray.length > 1" class="button" v-for="( media, index ) in  mediaArray " :key="index"
         @click="onServiceClick(index)">{{
-          service.type }}</button>
+          media.subCategory }}</button>
       <button v-if="audio.flag" class="button" @click="onAudioClick()">Listen</button>
     </div>
-    <div v-if='sType && sType != "Default"' class="episode-back">
+    <div v-if='sType && !onlyOne' class="episode-back">
       <button class="button" @click="onBackClick()">Back</button>
     </div>
 
@@ -51,72 +52,50 @@ import { ref, toRefs, watch, onMounted } from 'vue';
 
 export default {
   props: {
-    episodeImage: String,
-    episodeTitle: String,
-    episodeDescription: String,
-    episodeDate: String,
-    serviceTypes: Array,
-    serviceData: Object
+    content: Object,
+    mediaId: String
   },
   setup(props) {
-    const { episodeImage, episodeTitle, episodeDescription, serviceTypes, serviceData, episodeDate } = toRefs(props);
-
+    const { content, mediaId } = toRefs(props);
+    const contentCategories = ref([]);
     const sType = ref(null);
+    const mediaArray = ref([]);
+    const selectedMedia = ref(null);
     const selected = ref(null);
     const embed = ref(null);
     const player = ref(null);
     const speaker = ref(null);
     const scripture = ref([]);
     const audio = ref({ flag: false, index: null, url: null });
+    const onlyOne = ref(false);
 
-    const onButtonClick = (serviceType) => {
+    const onCategoryClick = (category) => {
       // handle button click
-      sType.value = serviceType;
-
-      //check for audio
-      for (let i = 0; i < serviceData.value[sType.value].length; i++) {
-        if (serviceData.value[sType.value][i].audioUrl) {
-          audio.value.flag = true;
-          audio.value.index = i;
-          audio.value.url = serviceData.value[sType.value][i].audioUrl;
-          break;
-        } else {
-          audio.value.flag = false;
+      sType.value = category;
+      //get all media with same category into array
+      mediaArray.value = [];
+      for (let i = 0; i < content.value.media.length; i++) {
+        if (content.value.media[i].category == category) {
+          mediaArray.value.push(content.value.media[i]);
         }
       }
 
+      //check for audio
+      // for (let i = 0; i < content.value[sType.value].length; i++) {
+      //   if (serviceData.value[sType.value][i].audioUrl) {
+      //     audio.value.flag = true;
+      //     audio.value.index = i;
+      //     audio.value.url = serviceData.value[sType.value][i].audioUrl;
+      //     break;
+      //   } else {
+      //     audio.value.flag = false;
+      //   }
+      // }
+
       //load first service in array
-      selected.value = serviceData.value[sType.value][0].type;
-
-      //get speaker
-      speaker.value = serviceData.value[sType.value][0].speaker;
-
-      //get scripture for first in the array
-      scripture.value = [];
-      for (let i = 0; i < serviceData.value[sType.value][0].scripture.length; i++) {
-
-        scripture.value.push({
-          reference: serviceData.value[sType.value][0].scripture[i].reference,
-          url: serviceData.value[sType.value][0].scripture[i].link
-        });
-      }
-
-      console.log("scripture", scripture.value);
-
-
-
-      //get first video in array
-      const videoUrl = serviceData.value[sType.value][0].videoUrl;
-      if (serviceData.value[sType.value][0].videoPlatform === 'vimeo') {
-        player.value = "vimeo";
-        embed.value = getVimeoId(videoUrl);
-        return;
-      }
-      if (serviceData.value[sType.value][0].videoPlatform === 'youtube') {
-        player.value = "youtube";
-        embed.value = getYoutubeId(videoUrl);
-        return;
-      }
+      selected.value = mediaArray.value[0].subCategory;
+      selectedMedia.value = mediaArray.value[0];
+      console.log(selected.value)
     };
 
     const onAudioClick = () => {
@@ -140,39 +119,12 @@ export default {
 
     const onServiceClick = (index) => {
       //handle service click
-      selected.value = serviceData.value[sType.value][index].type;
-
-      //get scripture
-      scripture.value = [];
-      for (let i = 0; i < serviceData.value[sType.value][index].scripture.length; i++) {
-        scripture.value.push({
-          reference: serviceData.value[sType.value][index].scripture[i].reference,
-          url: serviceData.value[sType.value][index].scripture[i].url
-        });
-      }
-
-      const videoUrl = serviceData.value[sType.value][index].videoUrl;
-
-      if (serviceData.value[sType.value][index].videoPlatform === 'vimeo') {
-        player.value = "vimeo";
-        embed.value = getVimeoId(videoUrl);
-        return;
-      }
-
-      if (serviceData.value[sType.value][index].videoPlatform === 'youtube') {
-        player.value = "youtube";
-        embed.value = getYoutubeId(videoUrl);
-        return;
-      }
-      //get youtube video id
+      selectedMedia.value = mediaArray.value[index];
     }
 
     const onBackClick = () => {
       sType.value = null;
-      selected.value = null;
-      embed.value = null;
-      player.value = null;
-      scripture.value = [];
+      selectedMedia.value = null;
     }
 
     const getVimeoId = (url) => {
@@ -193,34 +145,72 @@ export default {
 
     onMounted(() => {
       console.log("mounted");
-      if (serviceTypes.value[0] == "Default") {
-        onButtonClick(serviceTypes.value[0]);
+      console.log(content.value);
+      console.log(mediaId.value);
+
+
+
+      //get the service categories
+      for (let i = 0; i < content.value.media.length; i++) {
+        if (!contentCategories.value.includes(content.value.media[i].category)) {
+          contentCategories.value.push(content.value.media[i].category);
+        }
       }
+      console.log(contentCategories.value);
+
+      if(mediaId.value) {
+        for (let i = 0; i < content.value.media.length; i++) {
+          if (content.value.media[i].id == mediaId.value) {
+            onCategoryClick(content.value.media[i].category);
+            selectedMedia.value = content.value.media[i];
+            break;
+          }
+        }
+      }
+
+      if (content.value.media.length == 1) {
+        console.log("here");
+        onCategoryClick(contentCategories.value[0]);
+        onlyOne.value = true;
+      }
+
     });
 
-    watch(() => props.episodeTitle, () => {
+    watch(() => props.content, () => {
       console.log("episodeTitle changed")
       onBackClick();
-      if (serviceTypes.value[0] == "Default") {
-        onButtonClick(serviceTypes.value[0]);
+      contentCategories.value = [];
+      onlyOne.value = false;
+
+      //get the service categories
+      for (let i = 0; i < content.value.media.length; i++) {
+        if (!contentCategories.value.includes(content.value.media[i].category)) {
+          contentCategories.value.push(content.value.media[i].category);
+        }
       }
+      console.log(contentCategories.value);
+
+      if (content.value.media.length == 1) {
+        console.log("here");
+        onCategoryClick(contentCategories.value[0]);
+        onlyOne.value = true;
+      }
+
+
     });
 
     return {
-      episodeImage,
-      episodeTitle,
-      episodeDescription,
-      serviceTypes,
-      serviceData,
+      selectedMedia,
+      onlyOne,
       sType,
-      selected,
-      embed,
-      player,
-      speaker,
-      scripture,
+      mediaArray,
+      content,
+      contentCategories,
       audio,
+      getVimeoId,
+      getYoutubeId,
       onAudioClick,
-      onButtonClick,
+      onCategoryClick,
       onServiceClick,
       onBackClick
     };

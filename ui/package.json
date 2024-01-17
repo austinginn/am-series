@@ -13,6 +13,7 @@
     "ulid": "^2.3.0",
     "uuid": "^9.0.1",
     "vue": "^3.3.11",
+    "vue-custom-element": "^3.3.0",
     "vue-router": "^4.2.5"
   },
   "devDependencies": {

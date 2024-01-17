@@ -1,57 +1,47 @@
 <template>
     <div class="container">
 
-        <form v-if="episodeFinal" @submit.prevent="submitContentForm" class="series-form">
-            <h2>Edit Content</h2>
-            <div v-if="episodeFinal.serviceTypes.length > 0">
-                <div v-for="(serviceType, index) in episodeFinal.serviceTypes" :key="index">
-                    <h3>{{ serviceType }}</h3>
-                    <div v-for="(media, index) in episodeFinal[serviceType]" :key="index">
-                        <a :href="media.videoUrl" target="_blank">{{ media.type }}</a> <i class="fas fa-trash"
-                            @click.prevent="removeMedia(media.id)"></i>
-                        <br>
-                    </div>
-                </div>
-            </div>
-
-            <div v-for="(episode, index) in episodes" :key="index">
-                <h2>Add Media</h2>
+        <form v-if="content" @submit.prevent="submitContentForm" class="series-form">
+            <h2>Edit Content - {{ content.title }}</h2>
+            <div v-for="(media, mIndex) in content.media" :key="mIndex">
+                <h2>{{ media.category }} | {{ media.subCategory }} <i class="fas fa-trash"
+                        @click.prevent="removeMedia(mIndex)"></i></h2>
 
                 <label for="categoryTitle">Category:</label>
-                <select id="categoryTitle" v-model="episode.serviceType" required>
+                <select id="categoryTitle" v-model="media.category" required>
                     <option v-for="(category, index) in config.categories" :key="index" :value="category">
                         {{ category }}
                     </option>
                 </select>
 
                 <label for="videoType">Sub Category:</label>
-                <select id="videoType" v-model="episode.type" required>
+                <select id="videoType" v-model="media.subCategory" required>
                     <option v-for="(subcat, index) in config.subcats" :key="index" :value="subcat">
                         {{ subcat }}
                     </option>
                 </select>
 
                 <label for="videoType">Speaker:</label>
-                <select id="categoryTitle" v-model="episode.speaker" required>
+                <select id="categoryTitle" v-model="media.speaker" required>
                     <option v-for="(speaker, index) in config.speakers" :key="index" :value="speaker">
                         {{ speaker }}
                     </option>
                 </select>
 
                 <label for="videoUrl">Video URL:</label>
-                <input id="videoUrl" v-model="episode.videoUrl" type="text" />
+                <input id="videoUrl" v-model="media.videoUrl" type="text" />
 
                 <label for="audioUrl">Audio URL:</label>
-                <input id="audioUrl" v-model="episode.audioUrl" type="text" />
+                <input id="audioUrl" v-model="media.audioUrl" type="text" />
 
                 <label for="description">Description:</label>
-                <textarea id="description" v-model="episode.description"></textarea>
-                <button @click.prevent="addScripture(episode.id)">Add Scripture</button>
+                <textarea id="description" v-model="media.description"></textarea>
+                <button @click.prevent="addScripture(media.id)">Add Scripture</button>
 
-                <div class="scripture-form" v-for="(scripture, sIndex) in episode.scripture" :key="sIndex">
+                <div class="scripture-form" v-for="(scripture, sIndex) in media.scriptures" :key="sIndex">
                     <h2>
                         Scripture Reference {{ sIndex + 1 }}:
-                        <i class="fas fa-trash" @click.prevent="removeScripture(episode.id, sIndex)"></i>
+                        <i class="fas fa-trash" @click.prevent="removeScripture(media.id, sIndex)"></i>
                     </h2>
 
                     <label for="reference">Reference: </label>
@@ -62,19 +52,9 @@
                 </div>
             </div>
 
-            <!-- <button @click.prevent="addMedia">Add Media</button> -->
-            <button v-if="showDiscard" @click.prevent="save(true)">Discard Current Media and Save</button>
             <button @click.prevent="addMedia">Add Media</button>
-            <button @click.prevent="showModal = true">Save</button>
-            <div class="modal-backdrop" v-if="showModal"></div>
+            <button @click.prevent="save">Save</button>
 
-            <div class="modal" v-if="showModal">
-                <h2>Would you like to add more media for {{ episodeFinal.title }} ?</h2>
-                <div class="button-container">
-                    <button @click.prevent="addMedia">Add Media</button>
-                    <button @click.prevent="save(false)">Save</button>
-                </div>
-            </div>
             <!-- <button type="submit">Save</button> -->
         </form>
     </div>
@@ -84,7 +64,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { db } from '@/main.js';
-import { doc, getDoc, query, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, query, collection, getDocs, setDoc } from 'firebase/firestore';
+import { getPlatform } from '@/composables/helpers';
 
 const route = useRoute();
 const episodeId = ref(route.params.id);
@@ -94,22 +75,8 @@ const episodeFinal = ref({
 
 const showModal = ref(false);
 const showDiscard = ref(false);
+const content = ref({});
 
-const episode = ref({
-    title: '',
-    date: '',
-    seriesId: '',
-});
-
-const content = ref({
-    categoryTitle: '',
-    videoType: '',
-    videoUrl: '',
-    audioUrl: '',
-    description: '',
-    speaker: '',
-    scriptures: [],
-});
 
 const config = ref({});
 
@@ -134,67 +101,45 @@ const fetchConfig = async () => {
     }
 };
 
-const removeMedia = (id) => {
-    //find the episode in episodeFinal by id
-    const { serviceType, index } = findEpisodeById(id);
-
-    console.log(serviceType, index);
-
-    episodeFinal.value[serviceType].splice(index, 1);
-    console.log(episodeFinal.value);
+const removeMedia = (index) => {
+    content.value.media.splice(index, 1);
+    console.log(content.value);
 };
 
 const removeScripture = (id, scriptureIndex) => {
     //find the episode in episodeFinal by id
-    const { serviceType, index } = findEpisodeById(id);
-
-    console.log("Removing scripture from: ", serviceType, index);
-
+    const index = content.value.media.findIndex((media) => media.id === id);
     //remove scripture from episodeFinal
-    episodeFinal.value[serviceType][index].scripture.splice(scriptureIndex, 1);
-
+    content.value.media[index].scriptures.splice(scriptureIndex, 1);
 };
 
-const findEpisodeById = (id) => {
-    //find the episode in episodeFinal by id
-    let index = -1;
-    let serviceType = '';
-    for(let x = 0; x < episodeFinal.value.serviceTypes.length; x++){
-        index = episodeFinal.value[episodeFinal.value.serviceTypes[x]].findIndex((episode) => episode.id === id);
-        if(index > -1){
-            serviceType = episodeFinal.value.serviceTypes[x];
-            break;
-        }
-    }
-
-    console.log(serviceType, index);
-    return { serviceType, index };
-};
 
 const addScripture = (id) => {
     //find the episode in episodeFinal by id
-    const { serviceType, index } = findEpisodeById(id);
 
-    console.log(serviceType, index);
+    //find index of media by id
+    const index = content.value.media.findIndex((media) => media.id === id);
+    console.log(index);
 
     //add scripture to episodeFinal
-    episodeFinal.value[serviceType][index].scripture.push({
+    content.value.media[index].scriptures.push({
         reference: '',
         link: '',
     });
 }
 
 const addMedia = () => {
-    //add blank media to episode final
-    episodeFinal.value[episodeFinal.value.serviceTypes[0]].push({ 
-        audioUrl: '',
-        type: '',
+    content.value.media.push({
+        category: 'Default',
+        subCategory: 'Default',
         speaker: '',
-        videoPlatform: '',
+        description: '',
+        id: generateUID(),
+        audioUrl: '',
         videoUrl: '',
-        scripture: [],
-        id: generateUID()
-    })
+        videoPlatform: '',
+        scriptures: []
+    });
 };
 
 const generateUID = () => {
@@ -207,39 +152,23 @@ const generateUID = () => {
       return result;
     }
 
-const episodes = computed(() => {
-    let episodesArray = [];
-    //convert episodeFinal into array of episodes
-    for (let x = 0; x < episodeFinal.value.serviceTypes.length; x++) {
-        for (let y = 0; y < episodeFinal.value[episodeFinal.value.serviceTypes[x]].length; y++) {
-            const episode = {
-                ...episodeFinal.value[episodeFinal.value.serviceTypes[x]][y],
-                serviceType: episodeFinal.value.serviceTypes[x]
-            };
-            episodesArray.push(episode);
-        }
+const save = async () => {
+    //recalculate platform
+    for (let i = 0; i < content.value.media.length; i++) {
+        content.value.media[i].videoPlatform = getPlatform(content.value.media[i].videoUrl);
     }
-    return episodesArray;
-});
+    const docRef = doc(db, 'episodes', content.value.id);
+    await setDoc(docRef, content.value);
+    console.log('Document written with ID: ', docRef.id);
+};
 
 onMounted(async () => {
     // Assuming you have a function called `fetchEpisode` to get the episode data
-    episodeFinal.value = await fetchEpisode(episodeId.value);
+    content.value = await fetchEpisode(episodeId.value);
     config.value = await fetchConfig();
 
-    // //convert episodeFinal into array of episodes
-    // for (let x = 0; x < episodeFinal.value.serviceTypes.length; x++) {
-    //     for (let y = 0; y < episodeFinal.value[episodeFinal.value.serviceTypes[x]].length; y++) {
-    //         const episode = {
-    //             ...episodeFinal.value[episodeFinal.value.serviceTypes[x]][y],
-    //             serviceType: episodeFinal.value.serviceTypes[x]
-    //         };
-    //         episodes.value.push(episode);
-
-    //     }
-    // }
-    // console.log(episodes.value);
-    console.log(episodeFinal.value);
+    console.log(content.value);
+    console.log(config.value);
 });
 
 </script>

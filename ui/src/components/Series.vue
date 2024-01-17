@@ -1,9 +1,7 @@
 <template>
     <h2>Series</h2>
     <div>
-        <SeriesCardSmall v-for="seri in series" :key="seri.id" :seriesImage=seri.image :seriesTitle=seri.title
-            :seriesId="seri.id" :seriesStartDate="seri.startDate" :seriesEndDate="seri.endDate"
-            :seriesDescription="seri.description" :small="true" />
+        <SeriesCardSmall v-for="seri in series" :key="seri.id" :series="seri" :small="true" />
     </div>
 </template>
   

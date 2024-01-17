@@ -18,6 +18,11 @@ const router = createRouter({
       component: HomeView
     },
     {
+      path: '/:episodeId/:mediaId',
+      name: 'homeWithParams',
+      component: HomeView
+    },
+    {
       path: '/search',
       name: 'search',
       component: SearchView

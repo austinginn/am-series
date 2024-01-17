@@ -1,24 +1,24 @@
 <template>
-  <div v-if="!desktop || small" class="series-card" @click="onButtonClick(seriesId)">
-    <img :src="seriesImage" alt="Series Image" class="series-image" />
+  <div v-if="!desktop || small" class="series-card" @click="onButtonClick(series.id)">
+    <img :src="series.image" alt="Series Image" class="series-image" />
     <div class="series-info">
-      <h2 class="series-title">{{ seriesTitle }}</h2>
+      <h2 class="series-title">{{ series.title }}</h2>
       <!-- <p class="series-desc"> {{ truncatedDescription }} </p>
       <button class="show-more-button" v-if="seriesDescription.length > 125" @click="showFullDescription = !showFullDescription">
         {{ showFullDescription ? 'Show less' : 'Show more' }}
       </button> -->
-      <p class="series-date"> {{ seriesStartDate }} to {{ seriesEndDate }} </p>
+      <p class="series-date"> {{ series.startDate }} to {{ series.endDate }} </p>
     </div>
   </div>
-  <div v-else class="series-card-small-desktop" @click="onButtonClick(seriesId)">
-    <img :src="seriesImage" alt="series image" class="series-image-desktop" />
+  <div v-else class="series-card-small-desktop" @click="onButtonClick(series.id)">
+    <img :src="series.image" alt="series image" class="series-image-desktop" />
     <div class="series-info-desktop">
-      <h2 class="series-title-desktop">{{ seriesTitle }}</h2>
+      <h2 class="series-title-desktop">{{ series.title }}</h2>
       <p class="series-desc-desktop"> {{ truncatedDescription }} </p>
-      <button class="show-more-button" v-if="seriesDescription.length > 125" @click.stop="showFullDescription = !showFullDescription">
+      <button class="show-more-button" v-if="series.description.length > 125" @click.stop="showFullDescription = !showFullDescription">
         {{ showFullDescription ? 'Show less' : 'Show more' }}
       </button>
-      <p class="series-date-desktop">{{ seriesStartDate }} to {{ seriesEndDate }}</p>
+      <p class="series-date-desktop">{{ series.startDate }} to {{ series.endDate }}</p>
     </div>
   </div>
 </template>
@@ -28,16 +28,11 @@ import { ref, toRefs, onMounted, onUnmounted, computed } from 'vue';
 
 export default {
   props: {
-    seriesImage: String,
-    seriesTitle: String,
-    seriesDescription: String,
-    seriesStartDate: String,
-    seriesEndDate: String,
-    seriesId: String,
+    series: Object,
     small: Boolean,
   },
   setup(props, { emit }) {
-    const { seriesImage, seriesTitle, seriesDescription, seriesStartDate, seriesEndDate, seriesId } = toRefs(props);
+    const { series } = toRefs(props);
     const windowWidth = ref(window.innerWidth);
     const desktop = computed(() => windowWidth.value >= 768);
     const showFullDescription = ref(false);
@@ -54,6 +49,7 @@ export default {
 
     onMounted(() => {
       window.addEventListener('resize', handleResize);
+      console.log(series.value);
     });
 
     onUnmounted(() => {
@@ -62,28 +58,23 @@ export default {
 
     const truncatedDescription = computed(() => {
       if (showFullDescription.value) {
-        return props.seriesDescription;
-      } else if (props.seriesDescription.length > 125) {
-        let truncated = props.seriesDescription.substring(0, 125);
+        return props.series.description;
+      } else if (props.series.description.length > 125) {
+        let truncated = props.series.description.substring(0, 125);
         let lastSpaceIndex = truncated.lastIndexOf(' ');
         if (lastSpaceIndex !== -1) {
           truncated = truncated.substring(0, lastSpaceIndex);
         }
         return truncated + '...';
       } else {
-        return props.seriesDescription;
+        return props.series.description;
       }
     });
 
     return {
       showFullDescription,
       truncatedDescription,
-      seriesImage,
-      seriesTitle,
-      seriesDescription,
-      seriesStartDate,
-      seriesEndDate,
-      seriesId,
+      series,
       desktop,
       onButtonClick,
     };

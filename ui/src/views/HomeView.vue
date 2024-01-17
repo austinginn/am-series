@@ -8,169 +8,150 @@ import { useRouter } from 'vue-router';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/main.js';
 
-
-const episode = ref(null);
-const serviceData = ref(null);
-const seriesData = ref(null);
-const seriesEpisodes = ref(null);
 const route = useRoute();
-const series = ref(null);
-const config = ref(null);
-const searchTerm = ref(null);
 const router = useRouter();
 
+const content = ref(null);
+const series = ref(null);
+const seriesContent = ref([]);
+const mediaId = ref(null);
+const searchTerm = ref('');
+const config = ref(null);
 
 const search = () => {
   console.log("search", searchTerm.value);
   router.push({ path: '/search', query: { q: searchTerm.value } });
 }
 
-const loadEpisode = (episodeId) => {
+const loadEpisode = async (episodeId) => {
   console.log("loadEpisode", episodeId);
-  loadData(episodeId);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const contentRef = doc(db, 'episodes', episodeId);
+  const contentDoc = await getDoc(contentRef);
+
+  if (contentDoc.exists()) {
+    content.value = contentDoc.data();
+    console.log(content.value);
+    //get all other content from the same series
+    seriesContent.value = await fetchSeriesContent();
+    console.log("seriesContent", seriesContent.value);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    console.log('No such document!');
+  }
 }
 
+//fetch config
+const fetchConfig = async () => {
+  const configQuery = query(collection(db, 'config'));
+  const querySnapshot = await getDocs(configQuery);
+  let configData = {};
+  if (!querySnapshot.empty) {
+    const docSnap = querySnapshot.docs[0];
+    configData = docSnap.data();
+    console.log(configData);
+  }
+
+  return configData;
+}
+
+
+//get all episodes
 const loadSeries = async (seriesId) => {
-  const episodesRef = collection(db, 'episodes');
-  const seriesQuery = query(episodesRef, where('seriesId', '==', seriesId), orderBy('timestamp'), limit(1));
+  console.log("loadSeries", seriesId);
+  const contentRef = collection(db, 'episodes');
+  const seriesQuery = query(contentRef, where('seriesId', '==', seriesId), orderBy('timestamp'), limit(1));
   const querySnapshot = await getDocs(seriesQuery);
 
   if (!querySnapshot.empty) {
-    const firstEpisode = querySnapshot.docs[0].data();
-    console.log(firstEpisode);
+    const firstContent = querySnapshot.docs[0].data();
+    console.log(firstContent);
     // Load the first episode here
-    episode.value = firstEpisode;
-    getServiceData();
-    await getSeriesData();
-    await getAllEpisodes();
+    content.value = firstContent;
+    //get all other content from the same series
+    seriesContent.value = await fetchSeriesContent();
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
     console.log('No episodes found for this series.');
   }
 }
 
-const getConfig = async () => {
-  const configQuery = query(collection(db, 'config'));
-  const querySnapshot = await getDocs(configQuery);
+//get most recent content
+const fetchMostRecentContent = async () => {
+  const contentQuery = query(collection(db, 'episodes'), orderBy('timestamp', 'desc'), limit(1));
+  const contentSnapshot = await getDocs(contentQuery);
 
-  if (!querySnapshot.empty) {
-    const docSnap = querySnapshot.docs[0];
-    config.value = docSnap.data();
-    console.log(config.value);
+  if (!contentSnapshot.empty) {
+    const firstDoc = contentSnapshot.docs[0];
+    return firstDoc.data();
   }
-}
+};
 
-const getServiceData = () => {
-  console.log(episode.value);
-
-  serviceData.value = {
-    title: episode.value.title,
-  }
-
-  for (let i = 0; i < episode.value.serviceTypes.length; i++) {
-    serviceData.value[episode.value.serviceTypes[i]] = episode.value[episode.value.serviceTypes[i]];
-  }
-
-  console.log(serviceData.value);
-}
-
-const getSeriesData = async () => {
-  //access series data
-  const seriesRef = doc(db, 'series', episode.value.seriesId);
-  const seriesDoc = await getDoc(seriesRef);
-  if (seriesDoc.exists()) {
-    console.log(seriesDoc.data());
-    seriesData.value = seriesDoc.data();
-  } else {
-    console.log('No such document!');
-  }
-}
-
-const getAllEpisodes = async () => {
-  //get all episodes with same seriesId
-  const seriesEpisodesQuery = query(
-    collection(db, 'episodes'),
-    where('seriesId', '==', episode.value.seriesId),
-    orderBy('timestamp', 'desc') // Add this line
-  );
-  const seriesEpisodesSnapshot = await getDocs(seriesEpisodesQuery);
-
-  if (!seriesEpisodesSnapshot.empty) {
-    seriesEpisodes.value = seriesEpisodesSnapshot.docs.map(doc => doc.data());
-    console.log(seriesEpisodes.value);
-  } else {
-    console.log('No episodes found for this series!');
-  }
-
-}
-
-const getAllSeries = async () => {
+//get all series
+const fetchSeries = async () => {
   //get all series
   const seriesQuery = query(
     collection(db, 'series'),
     orderBy('timestamp', 'desc') // Add this line
   );
+  let seriesData = [];
   const seriesSnapshot = await getDocs(seriesQuery);
 
   if (!seriesSnapshot.empty) {
-    series.value = seriesSnapshot.docs.map(doc => doc.data());
-    console.log("getAllSeries", series.value);
-  } else {
-    console.log('No series found!');
-  }
-}
+    const seriesDocs = seriesSnapshot.docs;
 
-const loadData = async (id) => {
-  //reset data
-  // episode.value = null;
-  // serviceData.value = null;
-  // seriesData.value = null;
-  // seriesEpisodes.value = null;
-
-  console.log(id);
-  if (id) {
-    console.log('loading episode by id');
-
-    //get episode by id from db
-    const docRef = doc(db, 'episodes', id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      console.log(docSnap.data());
-      episode.value = docSnap.data();
-      getServiceData();
-      await getSeriesData();
-      if (!seriesEpisodes.value) {
-        await getAllEpisodes();
-      }
-      if (!series.value) {
-        await getAllSeries();
-      }
-
-    } else {
-      console.log('No such document!');
+    for (let i = 0; i < seriesDocs.length; i++) {
+      seriesData.push(seriesDocs[i].data());
     }
-    return;
+  }
+  return seriesData;
+};
+
+const fetchSeriesContent = async () => {
+  const seriesQuery = query(collection(db, 'episodes'), where('seriesId', '==', content.value.seriesId), orderBy('timestamp'));
+  const seriesSnapshot = await getDocs(seriesQuery);
+  const seriesData = [];
+
+  if (!seriesSnapshot.empty) {
+    const seriesDocs = seriesSnapshot.docs;
+
+
+    for (let i = 0; i < seriesDocs.length; i++) {
+      seriesData.push(seriesDocs[i].data());
+    }
+
+
+  }
+  console.log("seriesData", seriesData);
+  return seriesData;
+};
+
+onMounted(async () => {
+  console.log("params", route.params);
+  if (route.params.episodeId) {
+    mediaId.value = route.params.mediaId;
+    await loadEpisode(route.params.episodeId);
+    mediaId.value = route.params.mediaId;
+
+  } else {
+    //most recent content
+    content.value = await fetchMostRecentContent();
+    console.log(content.value);
   }
 
-  //get most recent episode from db
-  const q = query(collection(db, 'episodes'), orderBy('timestamp', 'desc'), limit(1));
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => {
-    episode.value = doc.data();
-  });
 
+  //get all other content from the same series
+  seriesContent.value = await fetchSeriesContent();
+  console.log("seriesContent", seriesContent.value);
 
-  getServiceData();
-  await getSeriesData();
-  await getAllEpisodes();
-  await getAllSeries();
-  await getConfig();
-}
+  //get all series
+  series.value = await fetchSeries();
+  console.log(series.value);
 
-onMounted(loadData);
-
-watch(route, loadData, { deep: true })
+  //get config
+  config.value = await fetchConfig();
+});
 
 
 </script>
@@ -183,24 +164,22 @@ watch(route, loadData, { deep: true })
   <div class="header">
     <h1>Alpharetta Methodist</h1>
     <div class="search-box">
-      <input type="text" v-model="searchTerm" placeholder="Search..." @keyup.enter="search"/>
+      <input type="text" v-model="searchTerm" placeholder="Search..." @keyup.enter="search" />
       <a href="/search" class="search-icon">
         <i class="fas fa-search"></i>
       </a>
     </div>
   </div>
-  <EpisodeCard v-if="serviceData" :episodeImage=seriesData.image :episodeTitle=episode.title :episodeDate="episode.date"
-    episodeDescription="Episode Description" :serviceTypes=episode.serviceTypes :serviceData="serviceData" />
-  <h1 v-if="serviceData && seriesEpisodes.length > 1" class="text-centered">More from this series:</h1>
-  <div v-if="serviceData && seriesEpisodes.length > 1" class="card-container">
-    <EpisodeCardSmall v-for="(episode, index) in seriesEpisodes" :key="index" :episodeImage=seriesData.image
-      :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" @select-episode="loadEpisode" />
+    <EpisodeCard v-if="content" :content=content :mediaId=mediaId />
+
+  <h1 v-if="content && seriesContent.length > 1" class="text-centered">More from this series:</h1>
+  <div v-if="content && seriesContent.length > 1" class="card-container">
+    <EpisodeCardSmall v-for="(content, index) in seriesContent" :key="index" :content="content"
+      @select-episode="loadEpisode" />
   </div>
   <h1 class="text-centered">Recent series:</h1>
   <div v-if="series" class="card-container">
-    <SeriesCardSmall v-for="(series, index) in series" :key="index" :seriesImage=series.image :seriesTitle=series.title
-      :seriesId="series.id" :seriesStartDate="series.startDate" :seriesEndDate="series.endDate"
-      :seriesDescription="series.description" @select-series="loadSeries" />
+    <SeriesCardSmall v-for="(series, index) in series" :key="index" :series="series" @select-series="loadSeries" />
   </div>
 </template>
 
@@ -296,4 +275,5 @@ watch(route, loadData, { deep: true })
   font-size: 16px;
   color: #333;
 }
+
 </style>

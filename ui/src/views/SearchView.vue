@@ -33,8 +33,7 @@
             <button @click="resetFilters">Reset</button>
         </div>
         <div class="episodes">
-            <EpisodeCardSmall v-for="(episode, index) in filteredEpisodes" :key="index" :episodeImage=episode.image
-                :episodeTitle=episode.title :episodeDate=episode.date :episodeId="episode.id" :small="true" />
+            <EpisodeCardSmall v-for="(episode, index) in filteredEpisodes" :key="index" :content="episode" :small="true" @click.prevent="loadEpisode(episode.id, episode.mediaId)"/>
         </div>
     </div>
 </template>
@@ -44,7 +43,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import EpisodeCardSmall from '@/components/EpisodeCardSmall.vue';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/main.js';
-import { useRoute } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 export default {
     components: {
@@ -57,7 +56,8 @@ export default {
         const startDate = ref(null);
         const endDate = ref(null);
         const episodes = ref([]); // replace with your episodes data
-        const route = useRoute();
+        const router = useRouter();
+        const route =useRoute();
         const config = ref({
             categories: [],
             speakers: [],
@@ -69,11 +69,12 @@ export default {
             console.log('filteredEpisodes computed');
             // filter episodes based on search term and date range
             return episodes.value.filter(episode => {
-                const matchesSearchTerm = !searchTerm.value || episode.title.includes(searchTerm.value) || episode.speaker.includes(searchTerm.value);
+                console.log(episode);
+                const matchesSearchTerm = !searchTerm.value || episode.title.includes(searchTerm.value) || episode.speaker.includes(searchTerm.value) || episode.scriptures.some(ref => ref.reference.includes(searchTerm.value));
                 const matchesStartDate = !startDate.value || new Date(episode.timestamp.toDate()) >= new Date(startDate.value);
                 const matchesEndDate = !endDate.value || new Date(episode.timestamp.toDate()) <= new Date(endDate.value);
                 const matchesSpeaker = !selectedSpeaker.value || episode.speaker === selectedSpeaker.value;
-                const matchesServiceType = !selectedServiceType.value || episode.serviceType === selectedServiceType.value;
+                const matchesServiceType = !selectedServiceType.value || episode.subCategory === selectedServiceType.value;
                 return matchesSearchTerm && matchesStartDate && matchesEndDate && matchesSpeaker && matchesServiceType;
             });
         });
@@ -102,17 +103,18 @@ export default {
 
             //I think I need to break it all down here.
             for (let i = 0; i < episodeList.length; i++) {
-                for (let x = 0; x < episodeList[i].serviceTypes.length; x++) {
-                    for (let y = 0; y < episodeList[i][episodeList[i].serviceTypes[x]].length; y++) {
-                        let episode = {}
-                        episode.timestamp = episodeList[i].timestamp;
-                        episode.date = episodeList[i].date;
-                        episode.title = makeTitle(episodeList[i].title, episodeList[i].serviceTypes[x], episodeList[i][episodeList[i].serviceTypes[x]][y].type);
-                        episode.serviceType = episodeList[i][episodeList[i].serviceTypes[x]][y].type;
-                        episode.image = episodeList[i].image;
-                        episode.speaker = episodeList[i][episodeList[i].serviceTypes[x]][y].speaker;
-                        episodes.value.push(episode);
-                    }
+                for (let x = 0; x < episodeList[i].media.length; x++) {
+                    let episode = {}
+                    episode.timestamp = episodeList[i].timestamp;
+                    episode.date = episodeList[i].date;
+                    episode.title = makeTitle(episodeList[i].title, episodeList[i].media[x].category, episodeList[i].media[x].subCategory);
+                    episode.subCategory = episodeList[i].media[x].subCategory;
+                    episode.image = episodeList[i].image;
+                    episode.speaker = episodeList[i].media[x].speaker;
+                    episode.mediaId = episodeList[i].media[x].id;
+                    episode.id = episodeList[i].id;
+                    episode.scriptures = episodeList[i].media[x].scriptures;
+                    episodes.value.push(episode);
                 }
             }
 
@@ -148,6 +150,11 @@ export default {
             filteredEpisodes.value;
         });
 
+        const loadEpisode = (episodeId, mediaId) =>  {
+            console.log(episodeId, mediaId);
+            router.push({ name: 'homeWithParams', params: { episodeId: episodeId, mediaId: mediaId } });
+        }
+
         return {
             searchTerm,
             startDate,
@@ -157,7 +164,8 @@ export default {
             selectedServiceType,
             selectedSpeaker,
             resetFilters,
-            makeTitle
+            makeTitle,
+            loadEpisode
         };
     },
 };
@@ -327,7 +335,9 @@ button:hover {
     .filters>* {
         flex-basis: 100%;
         /* margin-bottom: 10px; */
+        margin-right: 10px;
     }
+
     /* input {
         margin-left: 10px;
     } */
@@ -335,15 +345,20 @@ button:hover {
         margin-left: 10px;
         margin-right: 10px;
     }
+
     button {
         margin-left: 10px;
         margin-right: 10px;
     }
+    .date-filters {
+        width: 100px;
+    }
 }
+
 .date-filters i {
     margin: 5px;
 }
+
 .date-filters span {
     margin: 5px;
-}
-</style>
+}</style>

@@ -24,4 +24,4 @@ export const db = getFirestore(app);
 // Initialize Firebase Storage
 export const storage = getStorage(app);
 
-createApp(App).use(router).mount('#app')
+createApp(App).use(router).mount('#app');
